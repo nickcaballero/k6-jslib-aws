@@ -431,7 +431,7 @@ export class SignatureV4 {
         // For S3, we shouldn't normalize the path. For example, object name
         // my-object//example//photo.user should not be normalized to
         // my-object/example/photo.user
-        return path
+        return uriEncode(path, false)
     }
 
     /**
@@ -455,14 +455,14 @@ export class SignatureV4 {
             const value = query[key]
 
             if (typeof value === 'string') {
-                serialized[key] = `${escapeURI(key)}=${escapeURI(value)}`
+                serialized[key] = `${uriEncode(key)}=${uriEncode(value)}`
             } else if (Array.isArray(value)) {
                 serialized[key] = value
                     .slice(0)
                     .sort()
                     .reduce(
                         (encoded: Array<string>, value: string) =>
-                            encoded.concat([`${escapeURI(key)}=${escapeURI(value)}`]),
+                            encoded.concat([`${uriEncode(key)}=${uriEncode(value)}`]),
                         []
                     )
                     .join('&')
@@ -617,14 +617,14 @@ export class SignatureV4 {
             const value = query[key]
 
             if (typeof value === 'string') {
-                serialized[key] = `${escapeURI(key)}=${escapeURI(value)}`
+                serialized[key] = `${uriEncode(key)}=${uriEncode(value)}`
             } else if (Array.isArray(value)) {
                 serialized[key] = value
                     .slice(0)
                     .sort()
                     .reduce(
                         (encoded: Array<string>, value: string) =>
-                            encoded.concat([`${escapeURI(key)}=${escapeURI(value)}`]),
+                            encoded.concat([`${uriEncode(key)}=${uriEncode(value)}`]),
                         []
                     )
                     .join('&')
@@ -784,17 +784,23 @@ export interface DateInfo {
 }
 
 /**
- * Escapes a URI following the AWS signature v4 escaping rules.
+ * Encodes a value following the AWS signature v4 escaping rules.
  *
- * @param URI {string} The URI to escape.
- * @returns {string} The escaped URI.
+ * @param {string} value The value to encode.
+ * @param {boolean} encodeForwardSlash The value to encode.
+ * @returns {string} The encoded value.
  */
-function escapeURI(URI: string): string {
+function uriEncode(value: string, encodeForwardSlash = true): string {
     const hexEncode = (c: string): string => {
         return `%${c.charCodeAt(0).toString(16).toUpperCase()}`
     }
 
-    return encodeURIComponent(URI).replace(/[!'()*]/g, hexEncode)
+    const encoded = encodeURIComponent(value).replace(/[!'()*]/g, hexEncode)
+    if (!encodeForwardSlash) {
+        return encoded.replace(/%2F/g, '/');
+    } else {
+        return encoded;
+    }
 }
 
 /**
